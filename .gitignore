@@ -8,4 +8,3 @@ dist/
 # 検証用に ffmpeg で生成するメディア。tests/make-fixtures.sh で作り直す。
 fixtures/*
 !fixtures/README.md
-!tests/

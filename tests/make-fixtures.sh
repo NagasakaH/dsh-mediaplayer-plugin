@@ -13,8 +13,10 @@ ffmpeg -hide_banner -loglevel error -y -f lavfi -i "testsrc=size=320x240:rate=15
   -c:v libx264 -pix_fmt yuv420p -movflags +faststart -c:a aac -shortest fixtures/clip.mp4
 ffmpeg -hide_banner -loglevel error -y -f lavfi -i "color=c=navy:size=320x240:rate=15:duration=3" \
   -c:v libvpx-vp9 -b:v 400k -an fixtures/clip.webm
-ffmpeg -hide_banner -loglevel error -y -f lavfi -i "testsrc=size=1280x720:rate=30:duration=60" \
+# 20 MiB と 32 MiB の両方を越える大きさを目指す。testsrc だけでは圧縮が良すぎて
+# 目標ビットレートを使いきれないので、ノイズを足して実写なみの情報量にする。
+ffmpeg -hide_banner -loglevel error -y -f lavfi -i "testsrc=size=1280x720:rate=30:duration=60,noise=alls=40:allf=t" \
   -f lavfi -i "sine=frequency=440:duration=60" \
-  -c:v libx264 -preset ultrafast -b:v 4000k -pix_fmt yuv420p -movflags +faststart -c:a aac -shortest fixtures/big.mp4
+  -c:v libx264 -preset ultrafast -b:v 6000k -pix_fmt yuv420p -movflags +faststart -c:a aac -shortest fixtures/big.mp4
 
 ls -la fixtures
