@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
-# web プロファイルにこのプラグインを link: で入れる。
+# このプラグインをプロファイルに link: で入れる。
 #
-# この機器で実測した限り再起動は要らない。動いている host が add だけを吸収して、
-# 配信されるページに client.js が現れる。ブラウザを1回リロードすれば足りる。
-# 出ない場合のみ host を再起動する。その場合はこの会話も含めて host が死ぬので、
-# 必ずユーザーへ予告して手で行う:
-#     dsh を起動し直す（やり方は環境による）
-#     tail -40 dsh-web.log
+# プロファイル名は PROFILE で変える。既定は web。
+#     PROFILE=<profile> bash scripts/install-web.sh
+#
+# 実測では dsh plugin add だけで反映し、host の再起動は要らなかった。動いている
+# host が add を吸収して、配信されるページの bundle 一覧に client.js が現れる。
+# ブラウザを1回リロードすれば足りる。現れない場合のみ、起動している dsh web
+# プロセスをいつも通り一度再起動する。その場合は走っている会話も一緒に止まるので、
+# 必ずユーザーへ予告して手で行う。
 #
 # lib/client.js を直す変更は再起動もページリロードも要らない。
 # dsh-client-hmr がバンドルを約 500ms で熱交換する。
@@ -15,31 +17,34 @@ set -euo pipefail
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 PROFILE="${PROFILE:-web}"
 NAME="dsh-mediaplayer-plugin"
+DSH_HOME="${DSH_HOME:-$HOME/.dsh}"
 
-echo "== 導入前 =="
-dsh plugin --profile "$PROFILE" why "$NAME" 2>&1 | head -5 || true
-
-echo
 echo "== dsh plugin --profile $PROFILE add link:$REPO =="
 dsh plugin --profile "$PROFILE" add "link:$REPO"
 
 echo
-echo "== 導入後 =="
-python3 -c "
-import json, pathlib
-p = pathlib.Path.home() / '.dsh/profiles/$PROFILE/package.json'
+echo "== 導入後の bundles =="
+if [ -f "$DSH_HOME/profiles/$PROFILE/package.json" ]; then
+  PROFILE_DIR="$DSH_HOME/profiles/$PROFILE" python3 -c "
+import json, os
+p = os.path.join(os.environ['PROFILE_DIR'], 'package.json')
 print(json.load(open(p))['dsh']['profile']['bundles'])
 "
+else
+  echo "$DSH_HOME/profiles/$PROFILE/package.json がありません。PROFILE を確かめてください"
+  exit 1
+fi
 
-cat <<'EOS'
+cat <<EOS
 
 次:
-  1. ブラウザを1回リロードする。この機器では add だけでバンドルが配信される
-     ことを確かめた（page に client.js&rev= が出て HTTP 200）。
-  2. 右 Sidebar を Files タブ（既定 Mod+P）で開き、音声・動画ファイルを選ぶ。
-  3. 出ないときだけ host を再起動する。
-       dsh を起動し直す（やり方は環境による）
-     ★ この会話も一緒に終わる。手で実行するのが安全。
-  4. 取り消すなら:
-       dsh plugin --profile web remove dsh-mediaplayer-plugin
+  1. 上の bundles に $NAME が入っているかを見る。登録はそれで通っている。
+     動いている DSH が実際に配信しているかはページで確かめられる。
+       curl -s <DSH の URL>/ | grep -o '$NAME/client\.js&rev=[a-f0-9]*'
+  2. ブラウザを1回リロードする。
+  3. 右 Sidebar を Files タブで開き、音声・動画ファイルを選ぶ。
+  4. 出ないときだけ dsh web プロセスを再起動する。
+     ★ 走っている会話も一緒に止まる。手で実行するのが安全。
+  5. 取り消すなら:
+       dsh plugin --profile $PROFILE remove $NAME
 EOS
