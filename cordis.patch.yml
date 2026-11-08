@@ -1,0 +1,7 @@
+# プロファイルレイヤー。この 1 行の Loader 行で host 側（lib/index.js）を起動に組み込み、
+# 同じパッケージの dsh.client がブラウザ側（lib/client.js）を materialize する。
+# 参照: @deepseek-ai/dsh-client-ui-sidebar-documentpreview（1 パッケージに host の空 apply と
+#   client を同居させた実物。同じ形）
+- insert:
+    - id: mediaplayer
+      name: 'dsh-mediaplayer-plugin'
