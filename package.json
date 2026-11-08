@@ -24,13 +24,14 @@
     "lib",
     "cordis.patch.yml",
     "scripts",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "check": "node tests/check-independence.mjs && bash tests/check-glyphs.sh",
     "fixtures": "bash tests/make-fixtures.sh",
     "install-web": "bash scripts/install-web.sh"
   },
-  "license": "UNLICENSED",
+  "license": "Apache-2.0",
   "private": true
 }
