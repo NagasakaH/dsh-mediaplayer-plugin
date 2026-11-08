@@ -28,9 +28,9 @@
     "LICENSE"
   ],
   "scripts": {
-    "check": "node tests/check-independence.mjs && bash tests/check-glyphs.sh",
-    "fixtures": "bash tests/make-fixtures.sh",
-    "install-web": "bash scripts/install-web.sh"
+    "check": "node tests/check-independence.mjs && node tests/check-glyphs.mjs",
+    "fixtures": "./tests/make-fixtures.sh",
+    "install:profile": "./scripts/install.sh"
   },
   "license": "Apache-2.0",
   "private": true
