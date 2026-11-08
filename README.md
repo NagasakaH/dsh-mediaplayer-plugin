@@ -23,8 +23,8 @@ Files タブでファイルを選ぶ
 
 - DSH `0.2.1-rc.5` 以上（`package.json` の `engines.dsh` に同じ範囲を書いています）
 - Web を起動する DSH profile。このプラグインは `dsh.client.platform` が `web` なので、ブラウザで開く DSH でのみ materialize します。TUI やネイティブの carrier には入りません
-- `dsh plugin` が内部で pnpm を使うため、pnpm が必要です
-- 検証用の音声・動画を作るには ffmpeg と ffprobe が必要です（プラグインの実行には要りません）
+- `dsh` と `node`。`dsh plugin` が内部で pnpm を使うので、`dsh plugin` を実行するときだけ pnpm も要ります
+- 検証用の音声・動画を作るには ffmpeg と ffprobe が必要です。プラグインの実行には要りません
 
 ## 導入
 
@@ -33,17 +33,25 @@ Files タブでファイルを選ぶ
 ```sh
 git clone https://github.com/NagasakaH/dsh-mediaplayer-plugin.git
 cd dsh-mediaplayer-plugin
+./scripts/install.sh
+```
+
+`scripts/install.sh` が `dsh plugin --profile web add "link:$(pwd)"` を実行し、profile の bundles に入ったかを確かめて表示します。入っていなければ 0 以外で終わります。実行に要るのは `dsh` と `node` だけです。
+
+profile 名は渡せます。`dsh --profile myweb` のように別名で起動している場合は、その名前を渡します。
+
+```sh
+./scripts/install.sh <profile>
+PROFILE=<profile> ./scripts/install.sh
+```
+
+中で何が起きているかを手で追うなら、この1行と同じです。
+
+```sh
 dsh plugin --profile <profile> add "link:$(pwd)"
 ```
 
 `link:` を使うのが要点です。`file:` はスナップショットコピーになり、後の編集が反映されません。公開されている npm パッケージとしては配信していないので、`add` にはローカルパスを渡します。
-
-同じことを `scripts/install-web.sh` でもできます。`PROFILE` 環境変数で profile 名を替えられます。
-
-```sh
-bash scripts/install-web.sh
-PROFILE=<profile> bash scripts/install-web.sh
-```
 
 取り消すには次の1行です。
 
@@ -53,9 +61,15 @@ dsh plugin --profile <profile> remove dsh-mediaplayer-plugin
 
 ## 導入できたかの確認
 
-`$DSH_HOME/profiles/<profile>/package.json`（既定は `~/.dsh/profiles/<profile>/package.json`）の `dsh.profile.bundles` に `dsh-mediaplayer-plugin` が入っていれば、登録は通っています。`scripts/install-web.sh` はその1行を表示します。
+`$DSH_HOME/profiles/<profile>/package.json`（既定は `~/.dsh/profiles/<profile>/package.json`）の `dsh.profile.bundles` に `dsh-mediaplayer-plugin` が入っていれば、登録は通っています。`scripts/install.sh` はその確認を自分でやります。
 
-動いている DSH がバンドルを実際に配信しているかは、ページの bundle 一覧に出るかで見ます。`<DSH の URL>` はブラウザで開いている DSH のアドレスです。
+動いている DSH がバンドルを実際に配信しているかは、ページの bundle 一覧に出るかで見ます。インストール時に `DSH_URL` を渡すと、ここまで自動で確かめます。
+
+```sh
+DSH_URL=http://127.0.0.1:3000/ ./scripts/install.sh
+```
+
+すでに導入したあとで見るときは、この1行です。
 
 ```sh
 curl -s <DSH の URL>/ | grep -o 'dsh-mediaplayer-plugin/client\.js&rev=[a-f0-9]*'
@@ -63,13 +77,13 @@ curl -s <DSH の URL>/ | grep -o 'dsh-mediaplayer-plugin/client\.js&rev=[a-f0-9]
 
 1行でも出れば、その URL を直接取得して 200 と中身も確かめられます。ここまで出ていればブラウザを1回リロードするだけで反映します。
 
-`dsh plugin add` だけで反映し、host の再起動は要らないことを実測しています。ホストが profile の変更を拾わない実行形態の場合のみ、起動している `dsh web` プロセスをいつも通り一度止めて起動し直してください。再起動は走っている会話も一緒に止めます。どの起動方法でも手順は同じで、そのプロセスを再起動するだけです。
+`dsh plugin add` だけで反映し、host の再起動は要らないことを実測しています。ホストが profile の変更を拾わない実行形態の場合のみ、起動している `dsh` プロセスをいつも通り一度止めて起動し直してください。再起動は走っている会話も一緒に止めます。どの起動方法でも手順は同じで、そのプロセスを再起動するだけです。
 
 以降 `lib/client.js` だけ直す変更は、再起動もリロードも要りません。`dsh-client-hmr` がバンドルを約 500 ms で熱交換します。
 
 ## 動作確認
 
-1. `bash tests/make-fixtures.sh` で検証用の音声・動画を作る。
+1. `./tests/make-fixtures.sh` で検証用の音声・動画を作る。
 2. 右 Sidebar を Files タブで開き、`fixtures/tone.mp3` を選ぶ。音声再生器が出る。
 3. `fixtures/clip.mp4` を選ぶ。動画が枠の幅いっぱいに収まって再生できる。
 4. `fixtures/big.mp4`（44.50 MiB）を選ぶ。再生せず、サイズと 20 MB の上限が表示される。
@@ -113,21 +127,21 @@ npm run check
 
 `node tests/check-independence.mjs` が通さないのは、`navigator.mediaSession`、`localStorage`、`window` 上の状態、`fetch` などの JS 側受信、`querySelectorAll` などよその要素を触る操作です。コメントを除いて本文だけを見るので、触れないと書くために語名が出ただけでは落ちません。
 
-`bash tests/check-glyphs.sh` は日本語文案を調べます。`lib/client.js` の `zh` 辞書は中国語の UI 文案なので簡体字が正しく、日本の字形に直してはいけません。
+`node tests/check-glyphs.mjs` は日本語文案に混入した中国語簡体字の符号点を見ます。Node には JIS X 0213 の符号化がないので、混入する字形の表を持って判定します。表は符号点だけで持ち、文字リテラルを書きません。書くとこの検査が自分の表に引っかかるためです。JIS 表を引ける検査器がある機械では `CN_GLYPH_CHECKER` にそのパスを渡すと、それも同じ対象に対して走ります。`lib/client.js` の `zh` 辞書は中国語の UI 文案なので簡体字が正しく、日本の字形に直してはいけません。検査の側でその辞書を落としてから見ています。
 
 ## 開発
 
 リポジトリの形はこれだけです。ビルドも package の install も要りません。
 
 ```
-lib/client.js            ブラウザ側。window.__ModuleLoader__.load を1回呼ぶ
-lib/index.js             host 側。空の apply だけ。cordis の Loader 行の見出し
-cordis.patch.yml         profile に入る1行の Loader 行
-scripts/install-web.sh   profile への登録
-tests/                   検査と検証用ファイル生成
+lib/client.js         ブラウザ側。window.__ModuleLoader__.load を1回呼ぶ
+lib/index.js          host 側。空の apply だけ。cordis の Loader 行の見出し
+cordis.patch.yml      profile に入る1行の Loader 行
+scripts/install.sh    profile への登録と導入確認
+tests/                検査（node）と検証用ファイル生成（ffmpeg）
 ```
 
-`lib/client.js` を直したら次を通します。
+`lib/client.js` を直したら次を通します。ビルドも package の install も要りません。
 
 ```sh
 node --check lib/client.js && npm run check
