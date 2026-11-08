@@ -26,8 +26,9 @@
     "README.md"
   ],
   "scripts": {
+    "check": "bash tests/check-independence.sh",
     "fixtures": "bash tests/make-fixtures.sh",
-    "install-web": "dsh plugin --profile web add link:$(pwd)"
+    "install-web": "bash scripts/install-web.sh"
   },
   "license": "MIT",
   "private": true
