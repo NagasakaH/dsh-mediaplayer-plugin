@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 # web プロファイルにこのプラグインを link: で入れる。
 #
-# 初回の導入だけ dsh web の再起動が要る。host 側の lib/index.js を初めて読むためです。
-# 再起動すると今この会話を含めて host が死ぬ。実行前に必ず声をかけてください:
+# この機器で実測した限り再起動は要らない。動いている host が add だけを吸収して、
+# 配信されるページに client.js が現れる。ブラウザを1回リロードすれば足りる。
+# 出ない場合のみ host を再起動する。その場合はこの会話も含めて host が死ぬので、
+# 必ずユーザーへ予告して手で行う:
 #     dsh を起動し直す（やり方は環境による）
 #     tail -40 dsh-web.log
 #
-# 以降 lib/client.js だけ直す変更は再起動もページリロードも要らない。
+# lib/client.js を直す変更は再起動もページリロードも要らない。
 # dsh-client-hmr がバンドルを約 500ms で熱交換する。
 set -euo pipefail
 
@@ -32,10 +34,12 @@ print(json.load(open(p))['dsh']['profile']['bundles'])
 cat <<'EOS'
 
 次:
-  1. bundles に dsh-mediaplayer-plugin が入っていたら、host を一度だけ再起動する。
+  1. ブラウザを1回リロードする。この機器では add だけでバンドルが配信される
+     ことを確かめた（page に client.js&rev= が出て HTTP 200）。
+  2. 右 Sidebar を Files タブ（既定 Mod+P）で開き、音声・動画ファイルを選ぶ。
+  3. 出ないときだけ host を再起動する。
        dsh を起動し直す（やり方は環境による）
      ★ この会話も一緒に終わる。手で実行するのが安全。
-  2. 右 Sidebar を Files タブ（既定 Mod+P）で開き、音声・動画ファイルを選ぶ。
-  3. 取り消すなら:
+  4. 取り消すなら:
        dsh plugin --profile web remove dsh-mediaplayer-plugin
 EOS
